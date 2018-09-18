@@ -63,6 +63,14 @@
                             </div>
                         </div>
                     </form>
+                    <hr>
+                    <div class="form-group row mb-0">
+                        <div class="col-md-6 offset-md-4">
+                            <a href="{{ route('itsme.redirect', ['service' => 'login']) }}" class="btn btn-primary">
+                                {{ __('Login with itsme') }}
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
