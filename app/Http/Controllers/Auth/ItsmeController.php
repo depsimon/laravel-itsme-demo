@@ -34,37 +34,80 @@ class ItsmeController extends Controller
 
     public function callback()
     {
-        $response = Zttp::get(config('services.itsme.base_url') . 'status/' . session('transactionToken'))->json();
+        $response = Zttp::get(config('services.itsme.base_url') . 'status/' . session('transactionToken'));
 
-        $data = [
-            'name' => data_get($response, 'name.fullName'),
-            'email' => data_get($response, 'emailAddress'),
-            'gender' => data_get($response, 'gender'),
-            'birthdate' => data_get($response, 'birthdate'),
-            'locale' => data_get($response, 'locale'),
-            'phone' => data_get($response, 'phoneNumber'),
-            'street' => data_get($response, 'address.streetAddress'),
-            'postal_code' => data_get($response, 'address.postalCode'),
-            'city' => data_get($response, 'address.city'),
-            'country_code' => data_get($response, 'address.countryCode'),
-        ];
+        if ($response->status() == 404) {
+            session()->flash('itsme_error', "The transactionToken is invalid.");
 
-        if (request('service') == 'login') {
-            $user = User::where('itsme_id', data_get($response, 'userId'))->first();
+            return redirect()->route(request('service'));
+        }
 
-            $user->update($data);
+        if ($response->status() == 500) {
+            session()->flash('itsme_error', "An error occured on the itsme server. Please try again later.");
 
-            Auth::login($user, true);
+            return redirect()->route(request('service'));
+        }
 
-            return redirect()->route('home');
-        } else {
-            $user = User::create(['itsme_id' => data_get($response, 'userId')] + $data);
+        $jsonResponse = $response->json();
 
-            event(new Registered($user));
+        switch ($jsonResponse['status']) {
+            case 'cancelled':
+                session()->flash('itsme_error', "The user cancelled the request.");
 
-            Auth::login($user, true);
+                return redirect()->route(request('service'));
+            case 'failed':
+                session()->flash('itsme_error', "The user failed the request.");
 
-            return redirect()->route('home');
+                return redirect()->route(request('service'));
+            case 'expired':
+                session()->flash('itsme_error', "The request expired.");
+
+                return redirect()->route(request('service'));
+            case 'success':
+                $data = [
+                    'name' => data_get($jsonResponse, 'name.fullName'),
+                    'email' => data_get($jsonResponse, 'emailAddress'),
+                    'gender' => data_get($jsonResponse, 'gender'),
+                    'birthdate' => data_get($jsonResponse, 'birthdate'),
+                    'locale' => data_get($jsonResponse, 'locale'),
+                    'phone' => data_get($jsonResponse, 'phoneNumber'),
+                    'street' => data_get($jsonResponse, 'address.streetAddress'),
+                    'postal_code' => data_get($jsonResponse, 'address.postalCode'),
+                    'city' => data_get($jsonResponse, 'address.city'),
+                    'country_code' => data_get($jsonResponse, 'address.countryCode'),
+                ];
+
+                $user = User::where('itsme_id', data_get($jsonResponse, 'userId'))->first();
+
+                if (request('service') == 'login') {
+                    if (! $user) {
+                        session()->flash('itsme_error', "These credentials does not match any existing account.");
+
+                        return redirect()->route(request('service'));
+                    }
+
+                    $user->update($data);
+
+                    Auth::login($user, true);
+
+                    return redirect()->route('home');
+                } else {
+                    if ($user) {
+                        session()->flash('itsme_error', "An account already exists with these credentials.");
+
+                        return redirect()->route(request('service'));
+                    }
+
+                    $user = User::create(['itsme_id' => data_get($jsonResponse, 'userId')] + $data);
+
+                    event(new Registered($user));
+
+                    Auth::login($user, true);
+
+                    return redirect()->route('home');
+                }
+            default:
+                return redirect()->route(request('service'));
         }
     }
 }
