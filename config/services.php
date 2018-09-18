@@ -36,4 +36,9 @@ return [
         'secret' => env('STRIPE_SECRET'),
     ],
 
+    'itsme' => [
+        'token' => env('ITSME_TOKEN'),
+        'base_url' => env('ITSME_BASE_URL')
+    ],
+
 ];
