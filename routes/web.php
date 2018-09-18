@@ -17,4 +17,7 @@ Route::get('/', function () {
 
 Auth::routes();
 
+Route::get('/auth/itsme', 'Auth\ItsmeController@redirect')->name('itsme.redirect');
+Route::get('/auth/itsme/callback', 'Auth\ItsmeController@callback')->name('itsme.callback');
+
 Route::get('/home', 'HomeController@index')->name('home');
