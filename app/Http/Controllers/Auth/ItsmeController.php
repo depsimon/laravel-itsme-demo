@@ -13,13 +13,19 @@ class ItsmeController extends Controller
 {
     public function redirect()
     {
-        $transaction = Zttp::post(config('services.itsme.base_url') . 'transactions', [
-            'token' => config('services.itsme.token'),
-            'service' => request('service', 'register'),
-            'scopes' => ['profile', 'email', 'phone', 'address'],
-            'locale' => 'fr',
-            'redirectUrl' => route('itsme.callback', ['service' => request('service', 'register')]),
-        ])->json();
+        try {
+            $transaction = Zttp::post(config('services.itsme.base_url') . 'transactions', [
+                'token' => config('services.itsme.token'),
+                'service' => request('service', 'register'),
+                'scopes' => ['profile', 'email', 'phone', 'address'],
+                'locale' => 'fr',
+                'redirectUrl' => route('itsme.callback', ['service' => request('service', 'register')]),
+            ])->json();
+        } catch (\Exception $e) {
+            session()->flash('itsme_error', $e->getMessage());
+
+            return redirect()->route(request('service'));
+        }
 
         session()->flash('transactionToken', $transaction['transactionToken']);
 

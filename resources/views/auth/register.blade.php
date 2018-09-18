@@ -70,6 +70,9 @@
                         </div>
                     </form>
                     <hr>
+                    @if (session()->has('itsme_error'))
+                    <div class="alert alert-danger">{{ session('itsme_error') }}</div>
+                    @endif
                     <div class="form-group row mb-0">
                         <div class="col-md-6 offset-md-4">
                             <a href="{{ route('itsme.redirect', ['service' => 'register']) }}" class="btn btn-primary">
